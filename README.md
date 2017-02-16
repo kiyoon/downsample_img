@@ -8,7 +8,13 @@ im@kiyoon.kim
 
 ## Description
 
-Image downsampler written in Python2. Tested on Ubuntu 16.04 LTS. Supports CPU and GPU parallelization. Downsample based on averaging pixels, and crops if ratio doesn't fit.
+Image downsampler written in Python2. Tested on Ubuntu 16.04 LTS. Supports CPU and GPU parallelization. Downsample based on averaging pixels, and crops if ratio doesn't fit. CUDA supports mode 'squeeze' to squeeze if the radio doesn't fit.
+
+Make sure you copy the original data and run it, otherwise you'll lose your data. Hardlinks will be unlinked, so you can just do
+
+```cp -al original_HR new_LR```
+and run with "new_LR"
+
 
 ## Running the code
 
@@ -37,5 +43,5 @@ Default number of processes is set to 10.
 - To enable GPU CUDA parallelization (fastest), run  
 
 ```bash
-./downsample_img_dir_cuda.sh [dir_path]
+./downsample_img_dir_cuda.sh [dir_path] [mode (crop or squeeze)]
 ```

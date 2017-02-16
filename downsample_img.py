@@ -79,6 +79,7 @@ elif region_height < region_width:
 
 # if region is unity, already changed to LR
 if region_wh == 1:
+    os.unlink(sys.argv[1])
     cv2.imwrite(sys.argv[1], img)
     sys.exit()
 
@@ -101,6 +102,7 @@ for i in range(OUTPUT_HEIGHT):
         #print LR_img[i,j]
 
 LR_img = LR_img.astype(np.uint8)
+os.unlink(sys.argv[1])
 cv2.imwrite(sys.argv[1], LR_img)
 
 #cv2.imshow("second crop",img)

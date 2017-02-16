@@ -9,7 +9,7 @@ import sys
 import os
 
 if len(sys.argv) < 2:
-    print("Usage: python2 %s [text file of image_file_list] [path_to_log_output]" % sys.argv[0]) 
+    print("Usage: python2 %s [text file of image_file_list] [path_to_log_output] [mode (either crop or squeeze)]" % sys.argv[0]) 
     sys.exit()
 
 # definitions
@@ -25,19 +25,22 @@ import pycuda.driver as drv
 import pycuda.autoinit
 from pycuda.compiler import SourceModule
 
+if sys.argv[3] not in ('crop', 'squeeze'):
+    raise ValueError("mode should be crop or squeeze. got " + sys.argv[3])
+
 mod = SourceModule("""
 #define IDX_OUT(xx,yy,zz) ((zz) + blockDim.z * (yy) + blockDim.z*blockDim.y*(xx))
-#define IDX_IN(xx,yy,zz) ((zz) + blockDim.z * (yy) + blockDim.z*blockDim.y*nRegion*(xx))
-__global__ void average_block(unsigned char* inp, unsigned char* out, int nRegion)
+#define IDX_IN(xx,yy,zz) ((zz) + blockDim.z * (yy) + blockDim.z*blockDim.y*nRegionW*(xx))
+__global__ void average_block(unsigned char* inp, unsigned char* out, int nRegionW, int nRegionH)
 {
     const int x = threadIdx.x;
     const int y = threadIdx.y;
     const int z = threadIdx.z;
     int val = 0;
-    for(int i = x*nRegion; i < (x+1)*nRegion; i++)
-        for(int j = y*nRegion; j < (y+1)*nRegion; j++)
+    for(int i = x*nRegionH; i < (x+1)*nRegionH; i++)
+        for(int j = y*nRegionW; j < (y+1)*nRegionW; j++)
             val += inp[IDX_IN(i,j,z)];
-    val /= nRegion * nRegion;
+    val /= nRegionW * nRegionH;
     out[IDX_OUT(x,y,z)] = (char)val;
 }
 """)        
@@ -97,26 +100,28 @@ with open(sys.argv[1], 'r') as f:
         ##
         region_height = height // OUTPUT_HEIGHT
         region_width = width // OUTPUT_WIDTH
-        region_wh = region_width    # width and height will eventually be same, so it is the value of final region size (width and rectangle)
-        
-        if region_height > region_width:
-            # crop height
-            n_crop_region = region_height - region_width    # number of regions to be cropped
-            n_crop_pixel = n_crop_region * OUTPUT_HEIGHT    # number of pixels to be cropped
-            img = img[n_crop_pixel // 2 : -(n_crop_pixel // 2 + n_crop_pixel % 2), :]
-        
-        elif region_height < region_width:
-            # crop width
-            n_crop_region = region_width - region_height    # number of regions to be cropped
-            n_crop_pixel = n_crop_region * OUTPUT_WIDTH     # number of pixels to be cropped
-            img = img[:, n_crop_pixel // 2 : -(n_crop_pixel // 2 + n_crop_pixel % 2)]
-            region_wh = region_height
+
+        if sys.argv[3] == 'crop':
+            if region_height > region_width:
+                # crop height
+                n_crop_region = region_height - region_width    # number of regions to be cropped
+                n_crop_pixel = n_crop_region * OUTPUT_HEIGHT    # number of pixels to be cropped
+                img = img[n_crop_pixel // 2 : -(n_crop_pixel // 2 + n_crop_pixel % 2), :]
+                region_height = region_width
+            
+            elif region_height < region_width:
+                # crop width
+                n_crop_region = region_width - region_height    # number of regions to be cropped
+                n_crop_pixel = n_crop_region * OUTPUT_WIDTH     # number of pixels to be cropped
+                img = img[:, n_crop_pixel // 2 : -(n_crop_pixel // 2 + n_crop_pixel % 2)]
+                region_width = region_height
         
         # now, region is square.
 
 
         # if region is unity, already changed to LR
-        if region_wh == 1:
+        if region_width == 1 and region_height == 1:
+            os.unlink(imgfile)
             cv2.imwrite(imgfile, img)
             log.write(imgfile)
             log.write('\n')
@@ -128,8 +133,9 @@ with open(sys.argv[1], 'r') as f:
         LR_img = np.zeros((OUTPUT_HEIGHT, OUTPUT_WIDTH, 3), np.uint8)   # Initialized to black image. Add color later
         img = np.ascontiguousarray(img,dtype=np.uint8)
         
-        average_block(drv.In(img), drv.Out(LR_img), np.int32(region_wh), grid=(1,1), block=(OUTPUT_HEIGHT,OUTPUT_WIDTH,3))
+        average_block(drv.In(img), drv.Out(LR_img), np.int32(region_width), np.int32(region_height), grid=(1,1), block=(OUTPUT_HEIGHT,OUTPUT_WIDTH,3))
         
+        os.unlink(imgfile)
         cv2.imwrite(imgfile, LR_img)
         log.write(imgfile)
         log.write('\n')

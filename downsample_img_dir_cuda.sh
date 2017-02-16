@@ -4,9 +4,9 @@
 # Date: 20161228
 # Using downsample_img.py, downsample multiple images in a directory.
 
-if [ $# -lt 1 ]
+if [ $# -lt 2 ]
 then
-	echo "Usage: bash $0 [dir]"
+	echo "Usage: bash $0 [dir] [mode=crop or squeeze]"
 	echo "Make sure you backup the directory!"
 	echo
 	echo "makes LR images"
@@ -26,6 +26,6 @@ fi
 \mv "$1/.downsample_completed.log" "$1/.downsample_completed.log.old"
 \mv "$1/.things_to_downsample.log" "$1/.things_to_downsample.log.old"
 echo "$files" > "$1/.things_to_downsample.log"
-python2 downsample_img_cuda.py "$1/.things_to_downsample.log" "$1/.downsample_completed.log"
+python2 downsample_img_cuda.py "$1/.things_to_downsample.log" "$1/.downsample_completed.log" $2
 echo
 echo "Processing done!"
