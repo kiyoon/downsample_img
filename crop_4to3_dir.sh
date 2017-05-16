@@ -2,14 +2,14 @@
 
 # Author: Kiyoon Kim (yoonkr33@gmail.com)
 # Date: 20161228
-# Using downsample_img_cuda.py, downsample multiple images in a directory.
+# Using crop_4to3.py, crop images to fit 4:3 ratio
 
-if [ $# -lt 2 ]
+if [ $# -lt 1 ]
 then
-	echo "Usage: bash $0 [dir] [mode=crop or squeeze]"
+	echo "Usage: bash $0 [dir]"
 	echo "Make sure you backup the directory!"
 	echo
-	echo "makes LR images"
+	echo "makes images cropped to fit 4:3 ratio"
 	echo "Author: Kiyoon Kim (yoonkr33@gmail.com)"
 	exit 1
 fi
@@ -26,6 +26,6 @@ fi
 \mv "$1/.downsample_completed.log" "$1/.downsample_completed.log.old"
 \mv "$1/.things_to_downsample.log" "$1/.things_to_downsample.log.old"
 echo "$files" > "$1/.things_to_downsample.log"
-python2 downsample_img_cuda.py "$1/.things_to_downsample.log" "$1/.downsample_completed.log" $2
+python2 crop_4to3.py "$1/.things_to_downsample.log" "$1/.downsample_completed.log"
 echo
 echo "Processing done!"

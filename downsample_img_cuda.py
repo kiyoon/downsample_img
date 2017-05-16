@@ -8,7 +8,7 @@
 import sys
 import os
 
-if len(sys.argv) < 2:
+if len(sys.argv) < 4:
     print("Usage: python2 %s [text file of image_file_list] [path_to_log_output] [mode (either crop or squeeze)]" % sys.argv[0]) 
     sys.exit()
 
